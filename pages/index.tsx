@@ -1,30 +1,19 @@
 import { useState, useEffect } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
 import Cohete from "../public/img/cohete.gif";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 const Calculator = () => {
   const [input, setInput] = useState("");
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState<{ calculation: string; result: string }[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [lastResult, setLastResult] = useState(null);
 
   useEffect(() => {
-    const storedHistory = JSON.parse(localStorage.getItem("calcHistory")) || [];
+    const storedHistory = JSON.parse(localStorage.getItem("calcHistory") ?? "[]");
     setHistory(storedHistory);
-
-    const handleKeyPress = (e) => {
+  
+    const handleKeyPress = (e: KeyboardEvent) => {
       const key = e.key;
-
+  
       if ("0123456789".includes(key)) {
         updateInput(key);
       } else if (key === "Backspace") {
@@ -35,16 +24,20 @@ const Calculator = () => {
         handleOperator(key === "*" ? "x" : key === "/" ? "÷" : key);
       } else if (key === "Escape") {
         clearCalculator();
+      } else if (key === ".") {
+        if (!input.includes(".")) {
+          updateInput(key);
+        }
       }
     };
-
+  
     window.addEventListener("keydown", handleKeyPress);
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
     };
   }, [input, history]);
 
-  const handleClick = (btn) => {
+  const handleClick = (btn: string) => {
     switch (btn) {
       case "C":
         clearCalculator();
@@ -76,13 +69,13 @@ const Calculator = () => {
     setInput(input.slice(0, -1));
   };
 
-  const handleOperator = (operator) => {
+  const handleOperator = (operator: string) => {
     if (input && !["+", "-", "x", "÷"].includes(input.slice(-1))) {
       setInput((prevInput) => prevInput + operator);
     }
   };
 
-  const updateInput = (btn) => {
+  const updateInput = (btn: string) => {
     if (lastResult !== null) {
       setInput(btn);
       setLastResult(null);
@@ -96,23 +89,27 @@ const Calculator = () => {
       let expression = input
         .replace(/x/g, "*")
         .replace(/÷/g, "/");
-
+  
       const result = eval(expression);
-
+  
       if (result === Infinity || result === -Infinity) {
         throw new Error("Error: División por cero");
       }
-
+  
       setInput(result.toString());
       setLastResult(result);
       saveHistory(input, result);
     } catch (error) {
-      setInput(error.message);
+      if (error instanceof Error) {
+        setInput(error.message);
+      } else {
+        setInput("Error desconocido");
+      }
       setLastResult(null);
     }
   };
 
-  const saveHistory = (expression, result) => {
+  const saveHistory = (expression: string, result: string) => {
     const newHistory = [
       ...history,
       { calculation: expression, result },
